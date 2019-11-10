@@ -14,8 +14,8 @@ public class Opinion {
     private String review;
     private String nickname;
     private int grade;
-    private boolean recommendation;
-    private Date publishDate;
+    private String recommendation;
+    private String publishDate;
     private int thumbsUp;
     private int thumbsDown;
     private String advantage;
