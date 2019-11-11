@@ -14,26 +14,25 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 public class Parser {
 
     public static void main(String[] args) {
 
-        ArrayList<String> urls = new ArrayList<String>();
-        ArrayList<Opinion> opinions = new ArrayList<Opinion>();
+        ArrayList<String> urls = new ArrayList<>();
+        ArrayList<Opinion> opinions = new ArrayList<>();
         urls.add("https://www.ceneo.pl/76367847;02514#tab=reviews");
-        DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+       // DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         Document document = null;
-        try {
+            try {
             document = Jsoup.connect("https://www.ceneo.pl/76367847;02514#tab=reviews").get();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        while (!document.select("li.arrow-next").equals("")) {
+        while (true) {
+            assert document != null;
             String next = document.select("li.arrow-next").select("a").attr("href");
             if (next.equals(""))
                 break;
@@ -46,11 +45,6 @@ public class Parser {
                 e.printStackTrace();
             }
         }
-        Elements hrefs = document.select("li.arrow-next");
-        for (Element href : hrefs) {
-            urls.add("https://www.ceneo.pl" + href.select("a").attr("href"));
-            System.out.println(href);
-        }
 
         for (String url : urls) {
             try {
@@ -59,12 +53,13 @@ public class Parser {
                 e.printStackTrace();
             }
 
-            Elements reviewesBody = document.select("li.review-box");
-            for (Element review : reviewesBody) {
+            Elements reviewsBody = document.select("li.review-box");
+            for (Element review : reviewsBody) {
                 Opinion opinion = new Opinion();
                 opinion.setNickname(review.select("div.reviewer-name-line").text());
                 opinion.setRecommendation(review.select("em.product-recommended").text()
                         .equals("Polecam") ? "Tak" : "Nie");
+
                 String grade = review.select("span.review-score-count").text();
                 opinion.setGrade(!grade.equals("") ? Integer.parseInt(grade.substring(0, 1)) : 0);
                 opinion.setReview(review.select("p.product-review-body").text());
@@ -76,20 +71,10 @@ public class Parser {
 
                 String date;
                 date = review.select("time").attr("datetime").substring(0,10);
-                    //System.out.println(format.parse((review.select("time").attr("datetime"))));
                 opinion.setPublishDate(date);
-
-              /*  Elements advantages = document.select("div.pros-cell");
-                for(Element advantage: advantages){
-
-                    if(advantage.select("li").size() !=0){
-                        opinion.setAdvantage(advantage.select("li").text());
-                    }
-                }*/
 
                 opinions.add(opinion);
             }
-
         }
 
         String postUrl = "http://localhost:8080/api/opinion";
@@ -100,10 +85,13 @@ public class Parser {
                 postingString = new StringEntity(gson.toJson(opinion));
                 postingString.setContentEncoding(new BasicHeader(HTTP.CONTENT_TYPE,
                         "application/json"));
+
                 HttpClient httpClient = HttpClientBuilder.create().build();
+
                 HttpPost httpPost = new HttpPost(postUrl);
                 httpPost.setHeader("Content-type","application/json");
                 httpPost.setEntity(postingString);
+
                 HttpResponse response = httpClient.execute(httpPost);
 
             } catch (Exception e) {
