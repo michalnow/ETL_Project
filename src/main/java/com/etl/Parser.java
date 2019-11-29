@@ -21,30 +21,50 @@ import java.util.Scanner;
 public class Parser {
 
     public static void main(String[] args) throws InterruptedException {
-
         Scanner scanner = new Scanner(System.in);
-        Document document = null;
-            try {
-            document = Jsoup.connect("https://www.ceneo.pl/76367847;02514#tab=reviews").get();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        List<Element> reviewsBody = null;
+        List<Opinion> opinions = null;
+        String choice = "";
 
-        System.out.println("Za 5 sekund nastąpi proces ETL, bądź gotów");
-            Thread.sleep(4000);
-        assert document != null;
+        do {
+            System.out.println("Command Options: ");
+            System.out.println("1 - Extract");
+            System.out.println("2 - Transform");
+            System.out.println("3 - Load");
+            System.out.println("q: Quit");
+            choice = scanner.nextLine();
+            switch (choice){
+                case "1":
+                    Document document = null;
+                    try {
+                        document = Jsoup.connect("https://www.ceneo.pl/76367847;02514#tab=reviews").get();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
 
-        System.out.println("Extract !!!");
-        Thread.sleep(1000);
-        List<String> urls = prepareUrls(document);
+                    assert document != null;
 
-        System.out.println("\n\nTransform !!!");
-        Thread.sleep(1000);
-        List<Opinion> opinions = generateOpinions(urls,document);
+                    System.out.println("Extract !!!");
+                    List<String> urls = prepareUrls(document);
+                    reviewsBody = extractOpinionHtl(urls);
+                    break;
 
-        System.out.println("\n\nLoad !!!");
-        Thread.sleep(1000);
-        loadOpinionsToDb(opinions);
+                case "2":
+                    System.out.println("\n\nTransform !!!");
+                    if (reviewsBody != null) {
+                        opinions = generateOpinions(reviewsBody);
+                    }
+                    break;
+
+                case "3":
+                    System.out.println("\n\nLoad !!!");
+                    if (opinions != null) {
+                        loadOpinionsToDb(opinions);
+                    }
+                    break;
+            }
+
+        }while (!choice.equals("q"));
 
     }
 
@@ -54,14 +74,14 @@ public class Parser {
             StringEntity postingString;
             try {
                 Gson gson = new Gson();
-                postingString = new StringEntity(gson.toJson(opinion));
+                postingString = new StringEntity(gson.toJson(opinion), "UTF-8");
                 postingString.setContentEncoding(new BasicHeader(HTTP.CONTENT_TYPE,
-                        "application/json"));
+                        "application/json;charset=UTF-8"));
                 System.out.println(gson.toJson(opinion));
                 HttpClient httpClient = HttpClientBuilder.create().build();
 
                 HttpPost httpPost = new HttpPost(postUrl);
-                httpPost.setHeader("Content-type","application/json");
+                httpPost.setHeader("Content-type","application/json;charset=UTF-8");
                 httpPost.setEntity(postingString);
 
                 HttpResponse response = httpClient.execute(httpPost);
@@ -93,8 +113,9 @@ public class Parser {
         return urls;
     }
 
-    private static List<Opinion> generateOpinions(List<String> urls, Document document) {
-        List<Opinion> opinions = new ArrayList<>();
+    private static List<Element> extractOpinionHtl(List<String> urls){
+        List<Element> reviewsBody = new ArrayList<>();
+        Document document = null;
 
         for (String url : urls) {
             try {
@@ -103,29 +124,40 @@ public class Parser {
                 e.printStackTrace();
             }
 
-            Elements reviewsBody = document.select("li.review-box");
-            for (Element review : reviewsBody) {
-                Opinion opinion = new Opinion();
-                opinion.setNickname(review.select("div.reviewer-name-line").text());
-                opinion.setRecommendation(review.select("em.product-recommended").text()
-                        .equals("Polecam") ? "Tak" : "Nie");
-
-                String grade = review.select("span.review-score-count").text();
-                opinion.setGrade(!grade.equals("") ? Integer.parseInt(grade.substring(0, 1)) : 0);
-                opinion.setReview(review.select("p.product-review-body").text());
-
-                String thumbsUp = review.select("button.vote-yes").attr("data-total-vote");
-                String thumbsDown = review.select("button.vote-no").attr("data-total-vote");
-                opinion.setThumbsUp(Integer.parseInt(!thumbsUp.equals("") ? thumbsUp : "0"));
-                opinion.setThumbsDown(Integer.parseInt(!thumbsDown.equals("") ? thumbsDown : "0"));
-
-                String date;
-                date = review.select("time").attr("datetime").substring(0,10);
-                opinion.setPublishDate(date);
-                System.out.println(opinion);
-                opinions.add(opinion);
+            assert document != null;
+            for(Element el: document.select("li.review-box")){
+                reviewsBody.add(el);
             }
         }
+        System.out.println(reviewsBody);
+        return reviewsBody;
+    }
+
+    private static List<Opinion> generateOpinions(List<Element> reviewsBody) {
+        List<Opinion> opinions = new ArrayList<>();
+
+                for (Element review: reviewsBody) {
+                    Opinion opinion = new Opinion();
+                    opinion.setNickname(review.select("div.reviewer-name-line").text());
+                    opinion.setRecommendation(review.select("em.product-recommended").text()
+                            .equals("Polecam") ? "Tak" : "Nie");
+
+                    String grade = review.select("span.review-score-count").text();
+                    opinion.setGrade(!grade.equals("") ? Integer.parseInt(grade.substring(0, 1)) : 0);
+                    opinion.setReview(review.select("p.product-review-body").text());
+
+                    String thumbsUp = review.select("button.vote-yes").attr("data-total-vote");
+                    String thumbsDown = review.select("button.vote-no").attr("data-total-vote");
+                    opinion.setThumbsUp(Integer.parseInt(!thumbsUp.equals("") ? thumbsUp : "0"));
+                    opinion.setThumbsDown(Integer.parseInt(!thumbsDown.equals("") ? thumbsDown : "0"));
+
+                    String date;
+                    date = review.select("time").attr("datetime").substring(0, 10);
+                    opinion.setPublishDate(date);
+                    opinions.add(opinion);
+                    System.out.println(opinion);
+                }
+
         return opinions;
     }
 
