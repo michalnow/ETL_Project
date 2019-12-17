@@ -12,18 +12,18 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Parser {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        List<Element> reviewsBody = null;
-        List<Opinion> opinions = null;
+        Map<String,List<Element>> opinionBody = null;
+        List<Element> phonesBody = null;
+        Map<String,List<Opinion>> opinions = null;
+        List<Phone> phones = null;
         String choice = "";
 
         do {
@@ -37,7 +37,7 @@ public class Parser {
                 case "1":
                     Document document = null;
                     try {
-                        document = Jsoup.connect("https://www.ceneo.pl/76367847;02514#tab=reviews").get();
+                        document = Jsoup.connect("https://www.ceneo.pl/Smartfony").get();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -45,22 +45,27 @@ public class Parser {
                     assert document != null;
 
                     System.out.println("Extract !!!");
-                    List<String> urls = prepareUrls(document);
-                    reviewsBody = extractOpinionHtl(urls);
+
+                    List<String> phoneUrls = preparePhoneUrls(document);
+                    List<String> urls = prepareOpinionUrls(phoneUrls);
+                    System.out.println(urls);
+                    phonesBody = extractsPhoneHtml(phoneUrls);
+                    opinionBody = extractOpinionHtml(urls);
+                    System.out.println("Data has been extracted");
                     break;
 
                 case "2":
                     System.out.println("\n\nTransform !!!");
-                    if (reviewsBody != null) {
-                        opinions = generateOpinions(reviewsBody);
-                    }
+                    phones = generatePhones(phonesBody);
+                    opinions = generateOpinions(opinionBody);
+                    System.out.println("Data has been transformed");
                     break;
 
                 case "3":
                     System.out.println("\n\nLoad !!!");
-                    if (opinions != null) {
-                        loadOpinionsToDb(opinions);
-                    }
+                    loadPhonesToDb(phones);
+                    loadOpinionsToDb(opinions);
+                    System.out.println("Data has been loaded to db");
                     break;
             }
 
@@ -68,16 +73,16 @@ public class Parser {
 
     }
 
-    private static void loadOpinionsToDb(List<Opinion> opinions) {
-        String postUrl = "http://localhost:8080/api/opinion";
-        for (Opinion opinion : opinions) {
+    private static void loadPhonesToDb(List<Phone> phones){
+        String postUrl = "http://localhost:8080/api/phone";
+        for(Phone phone: phones){
             StringEntity postingString;
             try {
                 Gson gson = new Gson();
-                postingString = new StringEntity(gson.toJson(opinion), "UTF-8");
+                postingString = new StringEntity(gson.toJson(phone), "UTF-8");
                 postingString.setContentEncoding(new BasicHeader(HTTP.CONTENT_TYPE,
                         "application/json;charset=UTF-8"));
-                System.out.println(gson.toJson(opinion));
+                System.out.println(gson.toJson(phone));
                 HttpClient httpClient = HttpClientBuilder.create().build();
 
                 HttpPost httpPost = new HttpPost(postUrl);
@@ -92,32 +97,134 @@ public class Parser {
         }
     }
 
-    private static List<String> prepareUrls(Document document){
-        List<String> urls = new ArrayList<>();
-        urls.add("https://www.ceneo.pl/76367847;02514#tab=reviews");
+    private static void loadOpinionsToDb(Map<String,List<Opinion>> opinions) {
+        String postUrl = "http://localhost:8080/api/opinion/";
+        int i = 0;
+        Set<String> keys = opinions.keySet();
+        System.out.println(keys);
 
-        while (true) {
-            assert document != null;
-            String next = document.select("li.arrow-next").select("a").attr("href");
-            if (next.equals(""))
-                break;
-            String url = "https://www.ceneo.pl" + next;
-            System.out.println("url = " + url);
-            urls.add(url);
+        for(String key: keys) {
+            i++;
+            System.out.println("key = " + key);
+            List<Opinion> opinionList = opinions.get(key);
+            for (Opinion opinion : opinionList) {
+                StringEntity postingString;
+                try {
+                    Gson gson = new Gson();
+                    postingString = new StringEntity(gson.toJson(opinion), "UTF-8");
+                    postingString.setContentEncoding(new BasicHeader(HTTP.CONTENT_TYPE,
+                            "application/json;charset=UTF-8"));
+                    System.out.println(gson.toJson(opinion));
+                    HttpClient httpClient = HttpClientBuilder.create().build();
+
+                    HttpPost httpPost = new HttpPost(postUrl + i);
+                    System.out.println(postUrl+i);
+                    httpPost.setHeader("Content-type", "application/json;charset=UTF-8");
+                    httpPost.setEntity(postingString);
+
+                    HttpResponse response = httpClient.execute(httpPost);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private static List<String> prepareOpinionUrls(List<String> phoneUrls)  {
+        Set<String> urls = new LinkedHashSet<>();
+        Document document = null;
+        String first = "opinie-1";
+
+        for (String phoneUrl : phoneUrls) {
+            try {
+                document = Jsoup.connect(phoneUrl).get();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            int j = 0;
+            String next = "";
+
+            while (true) {
+                if (j == 0) {
+                    String href = document.select("li.arrow-next").select("a").attr("href");
+                    next = href.substring(0, 10) + first;
+                } else {
+                    assert document != null;
+                    next = document.select("li.arrow-next").select("a").attr("href");
+                }
+                System.out.println(next);
+                if (next.equals("")) {
+                    break;
+                }
+
+                String url = "https://www.ceneo.pl" + next;
+                urls.add(url);
+                j++;
+
+                try {
+                    document = Jsoup.connect(url).get();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+        System.out.println(urls);
+        return urls.stream().collect(Collectors.toList());
+    }
+
+    private static List<String> preparePhoneUrls(Document document){
+        Set<String> phoneUrls = new LinkedHashSet<>();
+        Elements links = document.select("a.go-to-product");
+        Element link = null;
+        int i = 0;
+
+        while(i < links.size()){ // links.size();
+            link = links.get(i);
+            String phone = link.attr("href") + "#tab=reviews";
+            String phoneUrl = "https://ceneo.pl" + phone;
+        //    System.out.println(phoneUrl);
+            phoneUrls.add(phoneUrl);
+            i++;
+        }
+
+        System.out.println(links.size());
+        List<String> urls = phoneUrls.stream().collect(Collectors.toList());
+        return urls;
+
+    }
+
+    private static List<Element> extractsPhoneHtml(List<String> phoneUrls){
+        List<Element> phonesBody = new ArrayList<>();
+        Document document = null;
+
+        for (String url: phoneUrls){
             try {
                 document = Jsoup.connect(url).get();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            for(Element el: document.select("table.product-content")){
+                phonesBody.add(el);
+            }
         }
-        return urls;
+
+        return phonesBody;
     }
 
-    private static List<Element> extractOpinionHtl(List<String> urls){
-        List<Element> reviewsBody = new ArrayList<>();
+    private static Map<String,List<Element>> extractOpinionHtml(List<String> urls){
+        Map<String,List<Element>> opinionsHtml = new LinkedHashMap<>();
+        List<Element> reviewsBody = null;
         Document document = null;
 
         for (String url : urls) {
+            if(opinionsHtml.get(url.substring(21,29)) == null){
+                reviewsBody = new ArrayList<>();
+            }
+            System.out.println(url);
             try {
                 document = Jsoup.connect(url).get();
             } catch (IOException e) {
@@ -126,17 +233,41 @@ public class Parser {
 
             assert document != null;
             for(Element el: document.select("li.review-box")){
+                //System.out.println(el);
                 reviewsBody.add(el);
             }
+
+            opinionsHtml.put(url.substring(21,29),reviewsBody);
+            System.out.println(reviewsBody.size());
         }
-        System.out.println(reviewsBody);
-        return reviewsBody;
+
+        return opinionsHtml;
     }
 
-    private static List<Opinion> generateOpinions(List<Element> reviewsBody) {
-        List<Opinion> opinions = new ArrayList<>();
+    private static List<Phone> generatePhones(List<Element> phonesBody){
+        List<Phone> phones = new ArrayList<>();
 
-                for (Element review: reviewsBody) {
+        for(Element phoneHtml: phonesBody){
+            Phone phone = new Phone();
+            phone.setFullName(phoneHtml.select("h1.product-name").text());
+            phone.setDescription(phoneHtml.select("div.ProductSublineTags").text());
+            phones.add(phone);
+        }
+
+        return phones;
+    }
+
+    private static Map<String,List<Opinion>> generateOpinions(Map<String,List<Element>> reviewsBody) {
+        Map<String,List<Opinion>> opinionReady = new LinkedHashMap<>();
+        Set<String> keys = reviewsBody.keySet();
+        List<Opinion> opinions;
+        int i = 0;
+        System.out.println(keys);
+
+            for(String key: keys) {
+                i++;
+                opinions = new ArrayList<>();
+                for (Element review : reviewsBody.get(key)) {
                     Opinion opinion = new Opinion();
                     opinion.setNickname(review.select("div.reviewer-name-line").text());
                     opinion.setRecommendation(review.select("em.product-recommended").text()
@@ -154,12 +285,19 @@ public class Parser {
                     String date;
                     date = review.select("time").attr("datetime").substring(0, 10);
                     opinion.setPublishDate(date);
+                    opinion.setPhone_id((long) i);
                     opinions.add(opinion);
                     System.out.println(opinion);
                 }
+                 opinionReady.put(key, opinions);
+            }
 
-        return opinions;
+            Set<String> keyset = opinionReady.keySet();
+            for(String key: keyset){
+                System.out.println("keeeeey " + key);
+                System.out.println(opinionReady.get(key));
+            }
+
+        return opinionReady;
     }
-
-
 }

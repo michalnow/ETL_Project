@@ -20,4 +20,5 @@ public class Opinion {
     private int thumbsDown;
     private String advantage;
     private String disadvantage;
+    private Long phone_id;
 }
