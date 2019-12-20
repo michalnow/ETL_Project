@@ -2,12 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b0d85e01-db96-453e-a747-4267a9e60bb6" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/etl/Opinion.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/etl/Opinion.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/etl/Parser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/etl/Parser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/etl/Phone.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/etl/Phone.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/etl/Opinion.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/etl/Opinion.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/etl/Parser.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/etl/Parser.class" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
@@ -51,8 +46,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/etl/Parser.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="722">
-              <caret line="38" column="25" lean-forward="true" selection-start-line="38" selection-start-column="25" selection-end-line="38" selection-end-column="25" />
+            <state relative-caret-position="6878">
+              <caret line="362" column="30" selection-start-line="362" selection-start-column="30" selection-end-line="362" selection-end-column="30" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -246,16 +241,15 @@
       <workItem from="1576658866997" duration="12057000" />
       <workItem from="1576751616160" duration="4254000" />
       <workItem from="1576832453678" duration="6966000" />
-      <workItem from="1576841641255" duration="776000" />
+      <workItem from="1576841641255" duration="3019000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="82969000" />
+    <option name="totallyTimeSpent" value="85212000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="27" width="1920" height="1053" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" weight="0.26520813" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -266,7 +260,7 @@
       <window_info id="Favorites" order="6" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.3264192" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.75982535" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -355,8 +349,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/etl/Parser.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="722">
-          <caret line="38" column="25" lean-forward="true" selection-start-line="38" selection-start-column="25" selection-end-line="38" selection-end-column="25" />
+        <state relative-caret-position="6878">
+          <caret line="362" column="30" selection-start-line="362" selection-start-column="30" selection-end-line="362" selection-end-column="30" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
