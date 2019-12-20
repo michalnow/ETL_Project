@@ -2,7 +2,6 @@ package com.etl;
 
 import lombok.*;
 
-import java.util.Date;
 
 @Getter
 @Setter
@@ -10,7 +9,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Opinion {
-
+    private String id;
     private String review;
     private String nickname;
     private int grade;
@@ -20,5 +19,5 @@ public class Opinion {
     private int thumbsDown;
     private String advantage;
     private String disadvantage;
-    private Long phone_id;
+    private String phone_id;
 }

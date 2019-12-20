@@ -12,7 +12,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import java.io.IOException;
+
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,13 +25,14 @@ public class Parser {
         List<Element> phonesBody = null;
         Map<String,List<Opinion>> opinions = null;
         List<Phone> phones = null;
-        String choice = "";
+        String choice;
 
         do {
             System.out.println("Command Options: ");
             System.out.println("1 - Extract");
             System.out.println("2 - Transform");
             System.out.println("3 - Load");
+            System.out.println("4 - Export to CSV");
             System.out.println("q: Quit");
             choice = scanner.nextLine();
             switch (choice){
@@ -44,28 +46,32 @@ public class Parser {
 
                     assert document != null;
 
-                    System.out.println("Extract !!!");
+                    System.out.println("\nEXTRACT !!!");
 
                     List<String> phoneUrls = preparePhoneUrls(document);
                     List<String> urls = prepareOpinionUrls(phoneUrls);
-                    System.out.println(urls);
                     phonesBody = extractsPhoneHtml(phoneUrls);
                     opinionBody = extractOpinionHtml(urls);
-                    System.out.println("Data has been extracted");
+                    System.out.println("\nDATA HAS BEEN EXTRACTED");
                     break;
 
                 case "2":
-                    System.out.println("\n\nTransform !!!");
+                    System.out.println("\nTRANSFORM !!!");
                     phones = generatePhones(phonesBody);
                     opinions = generateOpinions(opinionBody);
-                    System.out.println("Data has been transformed");
+                    System.out.println("\nDATA HAS BEEN TRANSFORMED");
                     break;
 
                 case "3":
-                    System.out.println("\n\nLoad !!!");
+                    System.out.println("\nLOAD !!!");
                     loadPhonesToDb(phones);
                     loadOpinionsToDb(opinions);
-                    System.out.println("Data has been loaded to db");
+                    System.out.println("\nDATA HAS BEED LOADED TO DB");
+                    break;
+                case "4":
+                    System.out.println("\nEXPORT TO CSV !!!");
+                    exportToCsv(opinions,phones);
+                    System.out.println("\nDATA HAS BEED EXPORTED TO CSV");
                     break;
             }
 
@@ -86,6 +92,7 @@ public class Parser {
                 HttpClient httpClient = HttpClientBuilder.create().build();
 
                 HttpPost httpPost = new HttpPost(postUrl);
+                System.out.println("EXECUTING POST " + postUrl);
                 httpPost.setHeader("Content-type","application/json;charset=UTF-8");
                 httpPost.setEntity(postingString);
 
@@ -117,8 +124,8 @@ public class Parser {
                     System.out.println(gson.toJson(opinion));
                     HttpClient httpClient = HttpClientBuilder.create().build();
 
-                    HttpPost httpPost = new HttpPost(postUrl + i);
-                    System.out.println(postUrl+i);
+                    HttpPost httpPost = new HttpPost(postUrl + key);
+                    System.out.println("EXECUTING POST " + postUrl +key);
                     httpPost.setHeader("Content-type", "application/json;charset=UTF-8");
                     httpPost.setEntity(postingString);
 
@@ -154,12 +161,13 @@ public class Parser {
                     assert document != null;
                     next = document.select("li.arrow-next").select("a").attr("href");
                 }
-                System.out.println(next);
+
                 if (next.equals("")) {
                     break;
                 }
 
                 String url = "https://www.ceneo.pl" + next;
+                System.out.println("Generated url = " + url);
                 urls.add(url);
                 j++;
 
@@ -171,6 +179,7 @@ public class Parser {
             }
 
         }
+        System.out.println("\nURLS ARE READY");
         System.out.println(urls);
         return urls.stream().collect(Collectors.toList());
     }
@@ -185,12 +194,10 @@ public class Parser {
             link = links.get(i);
             String phone = link.attr("href") + "#tab=reviews";
             String phoneUrl = "https://ceneo.pl" + phone;
-        //    System.out.println(phoneUrl);
             phoneUrls.add(phoneUrl);
             i++;
         }
 
-        System.out.println(links.size());
         List<String> urls = phoneUrls.stream().collect(Collectors.toList());
         return urls;
 
@@ -207,7 +214,7 @@ public class Parser {
                 e.printStackTrace();
             }
 
-            for(Element el: document.select("table.product-content")){
+            for(Element el: document.select("div.product")){
                 phonesBody.add(el);
             }
         }
@@ -224,7 +231,7 @@ public class Parser {
             if(opinionsHtml.get(url.substring(21,29)) == null){
                 reviewsBody = new ArrayList<>();
             }
-            System.out.println(url);
+
             try {
                 document = Jsoup.connect(url).get();
             } catch (IOException e) {
@@ -233,12 +240,16 @@ public class Parser {
 
             assert document != null;
             for(Element el: document.select("li.review-box")){
-                //System.out.println(el);
                 reviewsBody.add(el);
             }
 
             opinionsHtml.put(url.substring(21,29),reviewsBody);
-            System.out.println(reviewsBody.size());
+
+        }
+
+        Set<String> keys = opinionsHtml.keySet();
+        for(String key: keys){
+            System.out.println("num of extracted opinions for phone with ID " + key + " = " + opinionsHtml.get(key).size());
         }
 
         return opinionsHtml;
@@ -249,8 +260,10 @@ public class Parser {
 
         for(Element phoneHtml: phonesBody){
             Phone phone = new Phone();
-            phone.setFullName(phoneHtml.select("h1.product-name").text());
-            phone.setDescription(phoneHtml.select("div.ProductSublineTags").text());
+            phone.setPhone_id(phoneHtml.select("span.context-menu").attr("data-pid"));
+            phone.setFullName(phoneHtml.select("table.product-content").select("h1.product-name").text());
+            phone.setDescription(phoneHtml.select("table.product-content").select("div.ProductSublineTags").text());
+            phone.setImageUrl(phoneHtml.select("div.product-carousel").attr("content"));
             phones.add(phone);
         }
 
@@ -269,6 +282,7 @@ public class Parser {
                 opinions = new ArrayList<>();
                 for (Element review : reviewsBody.get(key)) {
                     Opinion opinion = new Opinion();
+                    opinion.setId(review.select("li.review-box").attr("data-entry-id"));
                     opinion.setNickname(review.select("div.reviewer-name-line").text());
                     opinion.setRecommendation(review.select("em.product-recommended").text()
                             .equals("Polecam") ? "Tak" : "Nie");
@@ -285,7 +299,7 @@ public class Parser {
                     String date;
                     date = review.select("time").attr("datetime").substring(0, 10);
                     opinion.setPublishDate(date);
-                    opinion.setPhone_id((long) i);
+                    opinion.setPhone_id(key);
                     opinions.add(opinion);
                     System.out.println(opinion);
                 }
@@ -294,10 +308,59 @@ public class Parser {
 
             Set<String> keyset = opinionReady.keySet();
             for(String key: keyset){
-                System.out.println("keeeeey " + key);
+                System.out.println("\nCENEO PHONE ID = " + key);
                 System.out.println(opinionReady.get(key));
             }
 
         return opinionReady;
+    }
+
+    private static void exportToCsv(Map<String, List<Opinion>> opinions, List<Phone> phones){
+        String csvSeperator = ";";
+        Set<String> keys = opinions.keySet();
+
+        try
+        {
+            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("opinions.csv"), "UTF-8"));
+            for (String key : keys){
+                List<Opinion> ops = opinions.get(key);
+                for(Opinion opinion: ops){
+                    StringBuffer oneLine = new StringBuffer();
+                    oneLine.append(opinion.getId());
+                    oneLine.append(csvSeperator);
+                    for(Phone phone: phones){
+                        System.out.println(phone);
+                        System.out.println(opinion);
+                        System.out.println(phone.getPhone_id());
+                        if(phone.getPhone_id().equals(opinion.getPhone_id())) {
+                            oneLine.append(phone.getFullName());
+                            break;
+                        }
+                    }
+                    oneLine.append(csvSeperator);
+                    oneLine.append(opinion.getNickname().trim());
+                    oneLine.append(csvSeperator);
+                    oneLine.append(opinion.getReview());
+                    oneLine.append(csvSeperator);
+                    oneLine.append(opinion.getGrade());
+                    oneLine.append(csvSeperator);
+                    oneLine.append(opinion.getPublishDate());
+                    oneLine.append(csvSeperator);
+                    oneLine.append(opinion.getThumbsUp());
+                    oneLine.append(csvSeperator);
+                    oneLine.append(opinion.getThumbsDown());
+                    oneLine.append(csvSeperator);
+                    oneLine.append(opinion.getRecommendation());
+                    oneLine.append(csvSeperator);
+
+                    bw.write(oneLine.toString());
+                    bw.newLine();
+
+
+                }
+            }
+            bw.flush();
+            bw.close();
+        } catch (IOException e) {}
     }
 }
