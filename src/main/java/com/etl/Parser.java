@@ -37,9 +37,15 @@ public class Parser {
             choice = scanner.nextLine();
             switch (choice){
                 case "1":
+                    String url = "";
                     Document document = null;
+
+                    while(!url.equals("ceneo.pl/Smartfony")){
+                        System.out.println("Enter valid link to smartphones without https://www.");
+                        url = scanner.nextLine();
+                    }
                     try {
-                        document = Jsoup.connect("https://www.ceneo.pl/Smartfony").get();
+                        document = Jsoup.connect("https://www." + url).get();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
