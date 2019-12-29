@@ -86,7 +86,7 @@ public class Parser {
     }
 
     private static void loadPhonesToDb(List<Phone> phones){
-        String postUrl = "http://localhost:8080/api/phone";
+        String postUrl = "http://localhost:8080/server/api/phone";
         for(Phone phone: phones){
             StringEntity postingString;
             try {
@@ -111,7 +111,7 @@ public class Parser {
     }
 
     private static void loadOpinionsToDb(Map<String,List<Opinion>> opinions) {
-        String postUrl = "http://localhost:8080/api/opinion/";
+        String postUrl = "http://localhost:8080/server/api/opinion/";
         int i = 0;
         Set<String> keys = opinions.keySet();
         System.out.println(keys);
