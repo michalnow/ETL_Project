@@ -17,7 +17,5 @@ public class Opinion {
     private String publishDate;
     private int thumbsUp;
     private int thumbsDown;
-    private String advantage;
-    private String disadvantage;
     private String phone_id;
 }

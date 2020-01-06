@@ -78,7 +78,6 @@ public class Parser {
                     loadPhonesToDb(phones);
                     loadOpinionsToDb(opinions);
                     System.out.println("Number of phones loaded to DB = " + phones.size());
-                    System.out.println("Number of opinions loaded to DB = " + opinions.size());
                     System.out.println("\nDATA HAS BEED LOADED TO DB");
                     break;
                 case "4":
