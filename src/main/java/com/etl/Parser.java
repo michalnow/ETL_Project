@@ -33,6 +33,7 @@ public class Parser {
             System.out.println("2 - Transform");
             System.out.println("3 - Load");
             System.out.println("4 - Export to CSV");
+            System.out.println("5 - Whole ETL Process");
             System.out.println("q: Quit");
             choice = scanner.nextLine();
             switch (choice){
@@ -58,6 +59,8 @@ public class Parser {
                     List<String> urls = prepareOpinionUrls(phoneUrls);
                     phonesBody = extractsPhoneHtml(phoneUrls);
                     opinionBody = extractOpinionHtml(urls);
+                    System.out.println("Number of sites extracted with phones = " + phonesBody.size());
+                    System.out.println("Number of sites extracted with opinions = " + opinionBody.size());
                     System.out.println("\nDATA HAS BEEN EXTRACTED");
                     break;
 
@@ -65,6 +68,8 @@ public class Parser {
                     System.out.println("\nTRANSFORM !!!");
                     phones = generatePhones(phonesBody);
                     opinions = generateOpinions(opinionBody);
+                    System.out.println("Number of phones = " + phones.size());
+                    System.out.println("Number of opinions = " + opinions.size());
                     System.out.println("\nDATA HAS BEEN TRANSFORMED");
                     break;
 
@@ -72,12 +77,49 @@ public class Parser {
                     System.out.println("\nLOAD !!!");
                     loadPhonesToDb(phones);
                     loadOpinionsToDb(opinions);
+                    System.out.println("Number of phones loaded to DB = " + phones.size());
+                    System.out.println("Number of opinions loaded to DB = " + opinions.size());
                     System.out.println("\nDATA HAS BEED LOADED TO DB");
                     break;
                 case "4":
                     System.out.println("\nEXPORT TO CSV !!!");
                     exportToCsv(opinions,phones);
                     System.out.println("\nDATA HAS BEED EXPORTED TO CSV");
+                    break;
+                case "5":
+                    System.out.println("Whole ETL PROCESS !");
+                    String url2 = "";
+                    Document document2 = null;
+
+                    while(!url2.equals("ceneo.pl/Smartfony")){
+                        System.out.println("Enter valid link to smartphones without https://www.");
+                        url2 = scanner.nextLine();
+                    }
+                    try {
+                        document2 = Jsoup.connect("https://www." + url2).get();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    assert document2 != null;
+
+                    System.out.println("\nEXTRACT !!!");
+                    List<String> phoneUrls2 = preparePhoneUrls(document2);
+                    List<String> urls2 = prepareOpinionUrls(phoneUrls2);
+                    phonesBody = extractsPhoneHtml(phoneUrls2);
+                    opinionBody = extractOpinionHtml(urls2);
+                    System.out.println("Number of sites extracted with phones = " + phonesBody.size());
+                    System.out.println("\nDATA HAS BEEN EXTRACTED");
+
+                    System.out.println("\nTRANSFORM !!!");
+                    phones = generatePhones(phonesBody);
+                    opinions = generateOpinions(opinionBody);
+                    System.out.println("\nDATA HAS BEEN TRANSFORMED");
+
+                    System.out.println("\nLOAD !!!");
+                    loadPhonesToDb(phones);
+                    loadOpinionsToDb(opinions);
+                    System.out.println("\nDATA HAS BEED LOADED TO DB");
                     break;
             }
 
@@ -86,6 +128,7 @@ public class Parser {
     }
 
     private static void loadPhonesToDb(List<Phone> phones){
+        int count = 0;
         String postUrl = "http://localhost:8080/server/api/phone";
         for(Phone phone: phones){
             StringEntity postingString;
@@ -103,21 +146,22 @@ public class Parser {
                 httpPost.setEntity(postingString);
 
                 HttpResponse response = httpClient.execute(httpPost);
+                count++;
 
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        System.out.println("Number of phones loaded to DB = " + count);
     }
 
     private static void loadOpinionsToDb(Map<String,List<Opinion>> opinions) {
         String postUrl = "http://localhost:8080/server/api/opinion/";
-        int i = 0;
+        int count = 0;
         Set<String> keys = opinions.keySet();
         System.out.println(keys);
 
         for(String key: keys) {
-            i++;
             System.out.println("key = " + key);
             List<Opinion> opinionList = opinions.get(key);
             for (Opinion opinion : opinionList) {
@@ -136,12 +180,13 @@ public class Parser {
                     httpPost.setEntity(postingString);
 
                     HttpResponse response = httpClient.execute(httpPost);
-
+                    count++;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
+        System.out.println("Number of opinions loaded to DB = " + count);
     }
 
     private static List<String> prepareOpinionUrls(List<String> phoneUrls)  {
@@ -224,7 +269,7 @@ public class Parser {
                 phonesBody.add(el);
             }
         }
-
+        System.out.println("Number of phones extracted = " + phonesBody.size());
         return phonesBody;
     }
 
@@ -273,6 +318,8 @@ public class Parser {
             phones.add(phone);
         }
 
+        System.out.println("Number of transformed phones = " + phones.size());
+
         return phones;
     }
 
@@ -315,7 +362,7 @@ public class Parser {
             Set<String> keyset = opinionReady.keySet();
             for(String key: keyset){
                 System.out.println("\nCENEO PHONE ID = " + key);
-                System.out.println(opinionReady.get(key));
+                System.out.println("Number of opinions = " + opinionReady.get(key).size());
             }
 
         return opinionReady;
